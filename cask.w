@@ -276,10 +276,14 @@ static int sockets[2];
 
 @*1Child-Only Code.
 
-@ This was a macro; now it is constant; in the future, it should be
-set via a command-line argument.
+@ |mount_qemu| was a macro; now it is constant; in the future, it should be
+set via a command-line argument.  Added |mount_dev| which also should be
+command-line argument.
+Or perhaps both should be eliminated and have a config list of
+what to mount and where.
 @<Declare global variables@>=
 int mount_qemu = 1;
+int mount_dev = 0;
 
 @ @<Declare functions@>=
 int child_code (void *);
@@ -293,7 +297,9 @@ int child_code (void *arglist) {@/
     @<Child: mkdir and mount |"/lib64"| or |exit(11)|@>@;
     @<Child: mkdir and mount QEMU directory or |exit(12)|@>@;
   }
-  @<Child: try to mount |"/dev"|@>@;
+  if (mount_dev) {
+    @<Child: try to mount |"/dev"|@>@;
+  }
   @<Child: change root directory to |rootdir| or |exit(22)|@>@;
   @<Child: change directory to |"/"| or |exit(66)|@>@;
   @<Child: verify read access to |cmd| or |exit(-2)|@>@;
