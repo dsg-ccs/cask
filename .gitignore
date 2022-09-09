@@ -1,0 +1,9 @@
+cask
+cask.tex
+*.c
+*.dvi
+*.idx
+*.log
+*.o
+*.scn
+*.toc

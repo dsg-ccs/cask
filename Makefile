@@ -1,0 +1,23 @@
+all: cask cask.dvi
+
+cask:	cask.o
+	$(CC) -o cask cask.o
+
+cask.o:	cask.c
+	$(CC) -std=gnu99 -c cask.c
+
+cask.c:	cask.w
+	$(CTANGLE) cask.w
+
+cask.dvi:	cask.tex
+	$(TEX) cask
+	mv cask.dvi cask.tmp.dvi
+	dviselect -i cask.tmp.dvi -o front.dvi =14:14
+	dviselect -i cask.tmp.dvi -o back.dvi =1:13
+	dviconcat -o cask.dvi front.dvi back.dvi
+
+cask.tex:	cask.w chapter-references.w references.tex
+	$(CWEAVE) cask.w
+
+clean:
+	$(RM) cask.tex cask.o cask.c
