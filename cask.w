@@ -300,6 +300,7 @@ int child_code (void *arglist) {@/
   if (mount_dev) {
     @<Child: try to mount |"/dev"|@>@;
   }
+  @<Child: try to mount |"/proc"|@>@;
   @<Child: change root directory to |rootdir| or |exit(22)|@>@;
   @<Child: change directory to |"/"| or |exit(66)|@>@;
   @<Child: verify read access to |cmd| or |exit(-2)|@>@;
@@ -381,6 +382,21 @@ char** cmdargs;
   }
   if (ret != 0) {
     perror("cask: Mount of dev failed");
+  }
+}
+
+@ @<Child: try to mount |"/proc"|@>=
+{
+  int ret;
+
+  sprintf(scratch,"%s/proc",rootdir);
+  ret = mkdir(scratch,0555);
+  ret = mount("/proc", scratch, NULL, MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
+  if (0) {
+    fprintf(stderr,"Mount of proc returned %d\n",ret);
+  }
+  if (ret != 0) {
+    perror("cask: Mount of proc failed");
   }
 }
 
