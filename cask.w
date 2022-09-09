@@ -53,16 +53,20 @@ int main(int argc, char**argv, char**envp)
 }
 
 @ Stevens~[\refStevensMCMXCIII] (pp.~122--125) discusses stream buffering
-and the use of |@!setbuf()|.  Passing |NULL| as the second argument
-of |setbuf()| causes the stream output to be unbuffered. The function must be
-called before any output is directed to the stream.
+and the use of |@!setbuf()|, which is declared in {\tt stdio.h}.  Passing
+|NULL| as the second argument of |setbuf()| causes the stream output to
+be unbuffered. The function must be called before any output is directed
+to the stream.
 @<Ensure that |stdout| is not buffered@>=
 {
   setbuf(stdout,NULL);
 }
 
-@ According to the original comments, this makes a socket pair to be used
-as sequencer (child waits for parent to set up). 
+@ This makes a socket pair to be used as a sequencer: the child waits for
+its parent to set up. The function |@!perror()| is declared in {\tt stdio.h}.
+The function |@!socketpair()| is declared in {\tt sys/socket.h}.
+@.stdio.h@>
+@.sys/socket.h@>
 @<Set up |sockets| or |exit()|@>=
 {
   if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) < 0) {
@@ -162,7 +166,14 @@ The declaration of |@!clone()| is in {\tt sched.h}.
 @ @<Declare |main| local variables@>=
 char scratch[2000];
 
-@ @<Parent: adjust child's UID map@>=
+@ The function |open()| is declared in {\tt fcntl.h}.
+The function |write()| is declared in {\tt unistd.h}.
+The function |kill()| is declared in {\tt signal.h}.
+The functions |printf()| and |sprintf()| are declared in {\tt stdio.h}.
+@.fcntl.h@>
+@.signal.h@>
+@.unistd.h@>
+@<Parent: adjust child's UID map@>=
 {
   int fd;
   
@@ -225,7 +236,10 @@ char scratch[2000];
   write(sockets[1],"go",2);
 }
 
-@ In this version, |cpid| and |status| are section-local variables.
+@ The type |@!pid_t| is defined in {\tt sys/types.h}.
+The function |@!waitpid()| is declared in {\tt sys/wait.h}.
+@.sys/types.h@>
+@.sys/wait.h@>
 @<Parent: await child termination@>=
 {
   pid_t cpid;
@@ -321,14 +335,15 @@ char** cmdargs;
   }
 }
 
-@ @<Child: mkdir and mount |"/lib64"| or |exit(11)|@>=
+@ The function |@!mkdir()|\dots
+@<Child: mkdir and mount |"/lib64"| or |exit(11)|@>=
 {
   int ret;
   sprintf(scratch,"%s/lib64",rootdir);
   ret = mkdir(scratch,0555);
   ret = mount("/lib64",scratch,NULL,MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
   if (ret != 0) {
-    perror("mkuidns: Mount of lib64 failed");
+    perror("cask: Mount of lib64 failed");
     exit(11);
   }
 }
@@ -343,7 +358,7 @@ char** cmdargs;
   ret = mount("/u06/dsg/mountasqemu", scratch, NULL,
      MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY, NULL);
   if (ret != 0) {
-    perror("mkuidns: Mount of qemu failed");
+    perror("cask: Mount of qemu failed");
     exit(12);
   }
 }
@@ -359,37 +374,43 @@ char** cmdargs;
     fprintf(stderr,"Mount of dev returned %d\n",ret);
   }
   if (ret != 0) {
-    perror("mkuidns: Mount of dev failed");
+    perror("cask: Mount of dev failed");
   }
 }
 
-@ @<Child: change root directory to |rootdir| or |exit(22)|@>=
+@ The function |@!chroot()| is declared in {\tt unistd.h}.
+@.unistd.h@>
+@<Child: change root directory to |rootdir| or |exit(22)|@>=
 {
   int ret;
 
   ret = chroot(rootdir);
   if (ret != 0) {
-    perror("mkuidns: Chroot failed");
+    perror("cask: Chroot failed");
     exit(22);
   }
 }
 
-@ @<Child: change directory to |"/"| or |exit(66)|@>=
+@ The function |@!chdir()| is declared in {\tt unistd.h}.
+@.unistd.h@>
+@<Child: change directory to |"/"| or |exit(66)|@>=
 {
   int ret;
 
   ret = chdir("/");
   if (ret != 0) {
-    perror("mkuidns: Chdir to / failed");
+    perror("cask: Chdir to / failed");
     exit(66);
   }
 }
 
-@ @<Child: verify read access to |cmd| or |exit(-2)|@>=
+@ The function |@!access()| is declared in {\tt unistd.h}.
+@.unistd.h@>
+@<Child: verify read access to |cmd| or |exit(-2)|@>=
 {
   ret = access(cmd,F_OK);
   if (ret != 0) {
-    perror("mkuidns: cmd does not exist");
+    perror("cask: cmd does not exist");
     exit(-2);
   }
 }
@@ -398,7 +419,7 @@ char** cmdargs;
 {
   ret = access(cmd,X_OK);
   if (ret != 0) {
-    perror("mkuidns: No execute access to cmd");
+    perror("cask: No execute access to cmd");
     exit(-2);
   }
   if (0) {
@@ -418,11 +439,13 @@ char** cmdargs;
   printf("\n");
 }
 
-@ @<Child: execute |cmd| with |cmdargs| or |exit(-2)|@>=
+@ The function |execve()| is declared in {\tt unistd.h}.
+@.unistd.h@>
+@<Child: execute |cmd| with |cmdargs| or |exit(-2)|@>=
 {
   ret = execve(cmd,cmdargs,sharedenvp);
   if (ret != 0) {
-    perror("mkuidns: Execve failed");
+    perror("cask: Execve failed");
     exit(-2);
   }
 }
