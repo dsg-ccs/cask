@@ -140,6 +140,7 @@ The declaration of |@!clone()| is in {\tt sched.h}.
 @.sched.h@>
 @<Clone to get |childpid| or |exit()|@>=
 {
+  sharedenvp = envp;
   childpid = clone(child_code, stacktop, flags, argv+1);
   if (childpid == -1) {
     perror("clone failed");
@@ -256,6 +257,7 @@ char scratch[2000];
 }
 
 @ @<Declare global variables@>=
+static char **sharedenvp;
 static int sockets[2];
 
 @*1Child-Only Code.
@@ -274,8 +276,8 @@ int child_code (void *arglist) {@/
   @<Child: read go-ahead from parent@>@;
   @<Child: define |args|, |rootdir|, |cmd|, and |cmdargs|@>@;
   if (mount_qemu) {
-    @<Child: mount |"/lib64"| or |exit(11)|@>@;
-    @<Child: mount QEMU directory or |exit(12)|@>@;
+    @<Child: mkdir and mount |"/lib64"| or |exit(11)|@>@;
+    @<Child: mkdir and mount QEMU directory or |exit(12)|@>@;
   }
   @<Child: try to mount |"/dev"|@>@;
   @<Child: change root directory to |rootdir| or |exit(22)|@>@;
@@ -319,10 +321,11 @@ char** cmdargs;
   }
 }
 
-@ @<Child: mount |"/lib64"| or |exit(11)|@>=
+@ @<Child: mkdir and mount |"/lib64"| or |exit(11)|@>=
 {
   int ret;
   sprintf(scratch,"%s/lib64",rootdir);
+  ret = mkdir(scratch,0555);
   ret = mount("/lib64",scratch,NULL,MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
   if (ret != 0) {
     perror("mkuidns: Mount of lib64 failed");
@@ -331,11 +334,12 @@ char** cmdargs;
 }
 
 @ What's going on here?
-@<Child: mount QEMU directory or |exit(12)|@>=
+@<Child: mkdir and mount QEMU directory or |exit(12)|@>=
 {
   int ret;
 
   sprintf(scratch,"%s/qemu",rootdir);
+  ret = mkdir(scratch,0555);
   ret = mount("/u06/dsg/mountasqemu", scratch, NULL,
      MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY, NULL);
   if (ret != 0) {
@@ -349,6 +353,7 @@ char** cmdargs;
   int ret;
 
   sprintf(scratch,"%s/dev",rootdir);
+  ret = mkdir(scratch,0555);
   ret = mount("/dev", scratch, NULL, MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
   if (0) {
     fprintf(stderr,"Mount of dev returned %d\n",ret);
@@ -415,7 +420,7 @@ char** cmdargs;
 
 @ @<Child: execute |cmd| with |cmdargs| or |exit(-2)|@>=
 {
-  ret = execve(cmd,cmdargs,NULL);
+  ret = execve(cmd,cmdargs,sharedenvp);
   if (ret != 0) {
     perror("mkuidns: Execve failed");
     exit(-2);
