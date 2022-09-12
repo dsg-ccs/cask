@@ -27,9 +27,28 @@
 @i identifiers.w
 
 @*1Overview.  This is the source code for the program {\tt cask}, which
-is a based on a program {\tt mkuidns} by Dan Ridge. {\bf Mystery:\/}
-What is this program supposed to accomplish, and how is it to be
-incorporated into emulation experiments?
+is a based on a program {\tt mkuidns} by Dan Ridge.
+@ The basic idea of this program is to run a guest subprogram in a new
+  environment that looks as much like a virtual machine as possible
+  without having any actual root privileges.
+
+  The |cask| program takes two positional arguments and treats all
+  additional arguments as a varargs list.
+
+  The first positional argument is a directory path which will become
+  the root directory of the guest program.
+
+  The second positional argument is the guest program to run (relative
+  to the new root).
+
+  The remaining arguments are passed as arguments to the guest program.
+
+  The Linux namespace and chroot capabilities are used as to define the new
+  environment.  A parent process creates a child process with the clone call.
+  It then has the ability to modify various key files inside the child's namespace.
+  It uses this ability map the guest uid 0  to host uid or the |cask| runner.
+
+
 @(cask.c@>=
 #define _GNU_SOURCE
 @<Include standard library header files@>@;
@@ -84,6 +103,7 @@ char *stacktop;
 
 @ @<Define macros@>=
 #define STACK_SIZE (1024*1024)
+#define QEMUEXTERNALDIR "/u06/dsg/mountasqemu"
 
 @ @<Create |stack| and |stacktop| or |exit()|@>=
 {
@@ -355,14 +375,19 @@ char** cmdargs;
   }
 }
 
-@ What's going on here?
+@ This is special treatment for if qemu is going to be run inside
+  the cask container.  The real program being run may not match the
+  local architecture so it will require running a qemu user-mode
+  emulator.  The emulator will be an x86 program so it will require files
+  that are not in the cask root.  This added directory holds the qemu
+  executable and any files it needs.
 @<Child: mkdir and mount QEMU directory or |exit(12)|@>=
 {
   int ret;
 
   sprintf(scratch,"%s/qemu",rootdir);
   ret = mkdir(scratch,0555);
-  ret = mount("/u06/dsg/mountasqemu", scratch, NULL,
+  ret = mount(QEMUEXTERNALDIR, scratch, NULL,
      MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY, NULL);
   if (ret != 0) {
     perror("cask: Mount of qemu failed");
