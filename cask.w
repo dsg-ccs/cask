@@ -46,7 +46,32 @@ is a based on a program {\tt mkuidns} by Dan Ridge.
   The Linux namespace and chroot capabilities are used as to define the new
   environment.  A parent process creates a child process with the clone call.
   It then has the ability to modify various key files inside the child's namespace.
-  It uses this ability map the guest uid 0  to host uid or the |cask| runner.
+
+  It uses this ability to: [ref. man user\_namespaces(7)]
+  
+  1. map the guest uid 0  to host uid or the |cask| runner
+     the /proc/pid/uid\_map file is a sequence of lines of the form:
+     
+     "uid in child namespace" "uid in parent namespace" "number of uids"
+     
+     which tells Linux how to map the effective uids out to the host namespace.
+     Thus without cask (or other namespace setter) the uid\_map file is
+     
+     0 0 0xffffffff
+     
+     But inside of cask the uid\_map file will be
+     
+     0  parentuid 1
+
+  2. set the /proc/pid/setgroups file to "deny" (as opposed to the default "allow").
+     This avoids a subtle security flaw for files that have more permissions for other than for a group.
+     Note that this change must preceed the changes to gid\_map
+
+  3. map the guest's group id in a completely analogous way using the gid\_map file
+
+     0 parentgid 1
+
+     
 
 
 @(cask.c@>=
