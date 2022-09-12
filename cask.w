@@ -1,5 +1,8 @@
 \input references
 
+\def\syncat#1{$\langle$#1$\rangle$}
+%
+
 \def\title{Cask: A Clone-Based Container}
 \def\shorttitle{Cask}
 \def\author{David S. Greenberg and Michael F. Bridgland}
@@ -26,53 +29,70 @@
 
 @i identifiers.w
 
-@*1Overview.  This is the source code for the program {\tt cask}, which
+@*1Overview.  This is the source code for the program \.{cask}, which
 is a based on a program {\tt mkuidns} by Dan Ridge.
-@ The basic idea of this program is to run a guest subprogram in a new
-  environment that looks as much like a virtual machine as possible
-  without having any actual root privileges.
+The purpose of \.{cask} is to run a guest subprogram in a {\sl container\/}:
+a new environment that looks as much like a virtual machine as possible
+without having any actual root privileges.
 
-  The |cask| program takes two positional arguments and treats all
-  additional arguments as a varargs list.
+@ The program \.{cask} takes two positional command-line arguments and treats
+all additional arguments as a variable-arguments list.
+%
+The first positional argument is the path to a directory to be used as
+the root directory for the guest program.
+%
+The second positional argument is the relative path to the guest program
+to run, with respect to the guest root directory.
+%
+The remaining arguments are passed as arguments to the guest program.
 
-  The first positional argument is a directory path which will become
-  the root directory of the guest program.
+The Linux namespace and chroot capabilities are used to define the new
+environment.  A parent process creates a child process by calling |clone()|.
+As documented in the Linux manual~[\refUserNamespaces], the parent process
+has the ability to ensure that the parent and child use different namespaces,
+by modifying various key files inside the \.{/proc} file system, .
 
-  The second positional argument is the guest program to run (relative
-  to the new root).
-
-  The remaining arguments are passed as arguments to the guest program.
-
-  The Linux namespace and chroot capabilities are used as to define the new
-  environment.  A parent process creates a child process with the clone call.
-  It then has the ability to modify various key files inside the child's namespace.
-
-  It uses this ability to: [ref. man user\_namespaces(7)]
+It uses this ability to: [{\bf Fix This.} There should be a preview in list
+form of what is coming in the next several sections.]
   
-  1. map the guest uid 0  to host uid or the |cask| runner
-     the /proc/pid/uid\_map file is a sequence of lines of the form:
-     
-     "uid in child namespace" "uid in parent namespace" "number of uids"
-     
-     which tells Linux how to map the effective uids out to the host namespace.
-     Thus without cask (or other namespace setter) the uid\_map file is
-     
-     0 0 0xffffffff
-     
-     But inside of cask the uid\_map file will be
-     
-     0  parentuid 1
+@*2Mapping Guest UIDs to Host UIDs. For a Linux process with process
+identifier $n$, the file \.{/proc/$\langle n\rangle$/uid\_map}\dots
 
-  2. set the /proc/pid/setgroups file to "deny" (as opposed to the default "allow").
-     This avoids a subtle security flaw for files that have more permissions for other than for a group.
-     Note that this change must preceed the changes to gid\_map
-
-  3. map the guest's group id in a completely analogous way using the gid\_map file
-
-     0 parentgid 1
-
+Map the guest UID 0  to host UID of the \.{cask} process.  The
+file \.{/proc/pid/uid\_map} is a sequence of lines of the form
+\medskip
      
+\syncat{UID in child namespace} \syncat{UID in parent namespace} %
+\syncat{number of UIDs}
+\medskip
+     
+\noindent that tell Linux how to map the effective UIDs to
+the host namespace. Thus without \.{cask} (or other namespace setter),
+the content of the file \.{uid\_map} is
+\medskip
+     
+\.{0 0 0xffffffff}
+\medskip
+     
+\noindent But inside of \.{cask} the content of \.{uid\_map} will be
+\medskip
+     
+\.{0  parentuid 1}
+\medskip
 
+@*2Group Security.
+Set the file \.{/proc/pid/setgroups} to \.{deny} (as opposed to
+the default value \.{allow}. This avoids a subtle security flaw
+for files that have more permissions for \.{other} than for \.{group}.
+Note that this change must preceed the changes to \.{gid\_map}.
+
+
+@*2Group Identifiers.
+Map the guest's group id in a completely analogous way using
+ the \.{gid\_map} file
+\medskip
+\.{0 parentgid 1}
+\medskip
 
 @(cask.c@>=
 #define _GNU_SOURCE

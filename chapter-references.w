@@ -30,3 +30,6 @@ Version 3.64, February 2002.
 [\refStevensMCMXCIII] W. Richard Stevens,
 {\sl Advanced Programming in the UNIX Environment},
 Addison--Wesley, Reading, Massachusetts, USA, 1993.
+
+\bigskip\noindent
+[\refUserNamespaces] \.{user\_namespaces(7)} Linux manual page.
