@@ -4,6 +4,17 @@ The program cask is literate-programming version of an old suggestion from Dan R
 
 ## Getting started
 
-Should just have to type make to build
+cd src
+make
 
 ## Usage
+
+See doc file in src directory
+
+## Testing
+
+pushd test
+make testprogs
+popd
+
+src/cask test/testroot/ forktest
