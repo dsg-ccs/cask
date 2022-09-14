@@ -1,0 +1,100 @@
+%
+%
+% The following conditionals can be used to define TeX macros that
+% behave one way in ordinary text and another way in the index,
+% table of contents, and section listings.
+%
+\newif\ifinCWEBbody
+\newif\ifinCWEBidx
+\newif\ifinCWEBtoc
+\newif\ifinCWEBscn
+\global\inCWEBbodytrue
+\global\inCWEBidxfalse
+\global\inCWEBtocfalse
+\global\inCWEBscnfalse
+%
+% The following macros from cwebmac.tex are redefined here so that
+% TeX macros can behave differently in ordinary text, the index,
+% the table of contents, and section listings.
+%
+\let\oldreadcontents\readcontents
+\let\oldreadindex\readindex
+\let\oldreadsections\readsections
+\def\readcontents{%
+  \global\inCWEBbodyfalse
+  \global\inCWEBidxfalse
+  \global\inCWEBtoctrue
+  \global\inCWEBscnfalse
+  \oldreadcontents
+}
+\def\readindex{%
+  \global\inCWEBbodyfalse
+  \global\inCWEBidxtrue
+  \global\inCWEBtocfalse
+  \global\inCWEBscnfalse
+  \oldreadindex
+}
+\def\readsections{%
+  \global\inCWEBbodyfalse
+  \global\inCWEBidxfalse
+  \global\inCWEBtocfalse
+  \global\inCWEBscntrue
+  \oldreadsections
+}
+%
+% The following macro is used to distinguish between two different
+% CWEB modules having the `same' name in different contexts.
+%
+%\def\FILE#1{}
+%
+%
+\def\FILE{%
+  \ifinCWEBbody\let\FILEnext\FILEBODY\fi%
+  \ifinCWEBidx\let\FILEnext\FILEIDX\fi%
+  \ifinCWEBtoc\let\FILEnext\FILETOC\fi%
+  \ifinCWEBscn\let\FILEnext\FILESCN\fi%
+  \FILEnext
+}
+\def\FILEBODY#1{}
+\def\FILEIDX#1{}
+\def\FILETOC#1{{\tt#1}: }
+\def\FILESCN#1{{\tt#1}: }
+%
+\def\CWEB/{{\tt CWEB}}
+\def\CPP/{\CEE/-preprocessor}
+\def\POSIX/{Posix}
+\def\em{\sl}
+\def\author{UNKNOWN AUTHOR}
+\def\date{UNKNOWN DATE}
+\def\affil{UNKNOWN AFFILIATION}
+\font\authorfont=cmr12
+\font\affilfont=cmti12
+\font\subtitlefont=cmr7 scaled \magstep 3
+\font\subttitlefont=cmtt10 scaled \magstep1
+%
+\def\topofcontents{\null\vfill
+  \centerline{\titlefont\title}
+  \medskip
+  \centerline{\subtitlefont\subtitle}
+  \vskip24pt
+  \centerline{\authorfont\author}
+  \vskip10pt
+  \centerline{\affilfont\affil}
+  \vskip10pt
+  \centerline{\authorfont\date}
+  \vskip24pt\def\shorttitle{\title}
+}
+\def\shorttitle{\title}
+\def\subtitle{}
+\def\lheader{%
+  \mainfont\the\pageno\eightrm\qquad\grouptitle\hfill\shorttitle\qquad
+  \mainfont\topsecno} % top line on left-hand pages
+\def\rheader{%
+  \mainfont\topsecno\eightrm\qquad\shorttitle\hfill\grouptitle
+  \qquad\mainfont\the\pageno} % top line on right-hand pages
+%
+\def\em{\sl}
+\font\medsmc=cmcsc9
+\font\bigsmc=cmcsc9 scaled\magstep2
+\font\bigmc=cmr9 scaled\magstep2
+\endinput

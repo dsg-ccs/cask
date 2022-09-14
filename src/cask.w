@@ -1,3 +1,4 @@
+\input cwebformat
 \input references
 
 \def\syncat#1{$\langle$#1$\rangle$}
@@ -9,23 +10,6 @@
 \def\affil{Center for Computing Sciences}
 \def\version{{\bf Draft Version 0.00}} 
 \def\date{\today}
-\font\authorfont=cmr12
-\font\affilfont=cmti12
-\font\subtitlefont=cmr7 scaled \magstep 3
-\font\subttitlefont=cmtt10 scaled \magstep1
-\def\topofcontents{\null\vfill
-  \centerline{\titlefont\title}
-  \medskip
-  \centerline{\subtitlefont\subtitle}
-  \vskip24pt
-  \centerline{\authorfont\author}
-  \vskip10pt
-  \centerline{\affilfont\affil}
-  \vskip10pt
-  \centerline{\authorfont\date}
-  \vskip24pt\def\shorttitle{\title}
-}
-\def\subtitle{}
 
 @i identifiers.w
 
