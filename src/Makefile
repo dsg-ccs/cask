@@ -1,5 +1,8 @@
 all: cask cask.dvi
 
+
+qcask:	  qcask.c
+	  $(GCC) $< -o $@
 cask:	cask.o
 	$(CC) -o cask cask.o
 
