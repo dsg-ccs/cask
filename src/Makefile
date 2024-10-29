@@ -1,15 +1,19 @@
 all: cask cask.dvi
 
 
+cask:	  cask.c
+	  $(CC) $< -o $@
 qcask:	  qcask.c
-	  $(GCC) $< -o $@
-cask:	cask.o
-	$(CC) -o cask cask.o
+	  $(CC) $< -o $@
+qcask-demo:	  qcask-demo.c
+	  $(CC) $< -o $@
+oldcask: oldcask.o
+	$(CC) -o oldcask oldcask.o
 
-cask.o:	cask.c
-	$(CC) -std=gnu99 -c cask.c
+oldcask.o: oldcask.c
+	$(CC) -std=gnu99 -c oldcask.c
 
-cask.c:	cask.w
+oldcask.c: cask.w
 	$(CTANGLE) cask.w
 
 cask.dvi:	cask.tex
