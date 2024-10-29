@@ -233,7 +233,7 @@ The functions |printf()| and |sprintf()| are declared in {\tt stdio.h}.
     kill(childpid,SIGTERM);
     exit(2);
   }
-  sprintf(scratch,"0 %06d 1\n",getuid());
+  sprintf(scratch,"%d %06d 1\n",userid,getuid());
   write(fd,scratch,11);
   close(fd);
   if (0) {
@@ -327,12 +327,16 @@ static int sockets[2];
 
 @ |mount_qemu| was a macro; now it is constant; in the future, it should be
 set via a command-line argument.  Added |mount_dev| which also should be
-command-line argument.
-Or perhaps both should be eliminated and have a config list of
+command-line argument. Also added | mount_proc|
+Or perhaps all should be eliminated and have a config list of
 what to mount and where.
+Also should be able to pass in the userid for inside the container.
+Previously we were always 0 = root.  Now can define here.
 @<Declare global variables@>=
 int mount_qemu = 1;
 int mount_dev = 0;
+int mount_proc = 0;
+int userid = 0;
 
 @ @<Declare functions@>=
 int child_code (void *);
@@ -344,12 +348,15 @@ int child_code (void *arglist) {@/
   @<Child: define |args|, |rootdir|, |cmd|, and |cmdargs|@>@;
   if (mount_qemu) {
     @<Child: mkdir and mount |"/lib64"| or |exit(11)|@>@;
-    @<Child: mkdir and mount QEMU directory or |exit(12)|@>@;
+    @<Child: mkdir and mount |"/usr/public/opt"| or |exit(12)|@>@;
+    @<Child: mkdir and mount QEMU directory or |exit(13)|@>@;
   }
   if (mount_dev) {
     @<Child: try to mount |"/dev"|@>@;
   }
-  @<Child: try to mount |"/proc"|@>@;
+  if (mount_proc) {
+    @<Child: try to mount |"/proc"|@>@;
+  }
   @<Child: change root directory to |rootdir| or |exit(22)|@>@;
   @<Child: change directory to |"/"| or |exit(66)|@>@;
   @<Child: verify read access to |cmd| or |exit(-2)|@>@;
@@ -404,13 +411,26 @@ char** cmdargs;
   }
 }
 
+@ The function |@!mkdir()|\dots
+@<Child: mkdir and mount |"/usr/public/opt"| or |exit(12)|@>=
+{
+  int ret;
+  sprintf(scratch,"%s/hostopt",rootdir);
+  ret = mkdir(scratch,0555);
+  ret = mount("/usr/public/opt",scratch,NULL,MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
+  if (ret != 0) {
+    perror("cask: Mount of /usr/public/opt failed");
+    exit(11);
+  }
+}
+
 @ This is special treatment for if qemu is going to be run inside
   the cask container.  The real program being run may not match the
   local architecture so it will require running a qemu user-mode
   emulator.  The emulator will be an x86 program so it will require files
   that are not in the cask root.  This added directory holds the qemu
   executable and any files it needs.
-@<Child: mkdir and mount QEMU directory or |exit(12)|@>=
+@<Child: mkdir and mount QEMU directory or |exit(13)|@>=
 {
   int ret;
 
