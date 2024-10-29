@@ -29,21 +29,104 @@ static int sockets[2];
 #define DEFAULT_USERID 0
 int child_code(void*);
 
-void domount(const char* internaldirname, const char* externaldirname) {
+/* Recursive mkdir - 
+   thanks to Jonathon Reinhart in the internet 
+   Modified to allow specifying mode for final directory
+*/
+/* Make a directory; already existing dir okay */
+static int maybe_mkdir(const char* path, mode_t mode)
+{
+    struct stat st;
+    errno = 0;
+
+    //printf("Try make of %s for mode %o ",path,mode);
+    /* Try to make the directory */
+    if (mkdir(path, mode) == 0) {
+        //printf(" succeeded\n");
+        return 0;
+    }
+
+    /* If it fails for any reason but EEXIST, fail */
+    if (errno != EEXIST) {
+        //printf(" failed\n");
+        return -1;
+    }
+
+    //printf(" existed ");
+    /* Check if the existing path is a directory */
+    if (stat(path, &st) != 0) {
+        //printf(" but no stat\n");
+        return -1;
+    }
+
+    /* If not, fail with ENOTDIR */
+    if (!S_ISDIR(st.st_mode)) {
+        errno = ENOTDIR;
+	//printf(" but not a direcotry\n");
+        return -1;
+    }
+
+    //printf(" so okay\n");
+
+    errno = 0;
+    return 0;
+}
+
+int mkdir_p(const char *path, mode_t mode)
+{
+    /* Adapted from http://stackoverflow.com/a/2336245/119527 */
+    char *_path = NULL;
+    char *p; 
+    int result = -1;
+
+    errno = 0;
+
+    /* Copy string so it's mutable */
+    _path = strdup(path);
+    if (_path == NULL)
+        goto out;
+
+    /* Iterate the string */
+    for (p = _path + 1; *p; p++) {
+        if (*p == '/') {
+            /* Temporarily truncate */
+            *p = '\0';
+
+            if (maybe_mkdir(_path, 0777) != 0)
+                goto out;
+
+            *p = '/';
+        }
+    }   
+
+    if (maybe_mkdir(_path, mode) != 0)
+        goto out;
+
+    result = 0;
+
+out:
+    free(_path);
+    return result;
+}
+
+
+void domount(const char* rootdir, const char* internaldirname, const char* externaldirname) {
+  char scratch[2000];
   int ret;
   int i;
   // Make sure have mount point in internal root dir
-  ret= mkdir(internaldirname,0555);
+  sprintf(scratch,"%s/%s",rootdir,internaldirname);
+  ret= mkdir_p(scratch,0555);
   if((ret == -1) && (errno != EEXIST)){
     // show failures other than file exists
-    fprintf(stderr,"Mkdir of %s failed (%d) (%s)\n",internaldirname,errno, strerror(errno));
+    fprintf(stderr,"Mkdir of %s failed (%d) (%s)\n",scratch,errno, strerror(errno));
   }
-  ret= mount(externaldirname,internaldirname,NULL,MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
+  ret= mount(externaldirname,scratch,NULL,MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
   if(ret!=0){
     fprintf(stderr,"mount of %s on %s (%d) (%s)\n",internaldirname,externaldirname, errno, strerror(errno));
     exit(11);
   } else {
-    fprintf(stderr,"mount of %s on %s succeeded\n",externaldirname,internaldirname);
+    fprintf(stderr,"mount of %s on %s succeeded\n",externaldirname,scratch);
   }
 }
 
@@ -149,7 +232,6 @@ int child_code(void*arglist){
   char okmsg[3];
   int ret;
   int i;
-  char scratch[2000];
 
   char**args;
   char*rootdir;
@@ -173,36 +255,28 @@ int child_code(void*arglist){
   }
 
   if (MOUNT_QEMU == 1){
-    sprintf(scratch,"%s/lib64",rootdir);
-    domount(scratch,"/lib64");
+    domount(rootdir,"lib64","/lib64");
 
-    sprintf(scratch,"%s/lib/x86_64-linux-gnu",rootdir);
-    domount(scratch,"/lib/x86_64-linux-gnu");
+    domount(rootdir,"lib/x86_64-linux-gnu","/lib/x86_64-linux-gnu");
 
     if (0) {
-    sprintf(scratch,"%s/usr",rootdir);
-    ret= mkdir(scratch,0755);
-    sprintf(scratch,"%s/usr/public",rootdir);
-    ret= mkdir(scratch,0755);
-    sprintf(scratch,"%s/usr/public/opt",rootdir);
-    ret= mkdir(scratch,0555);
-    ret= mount(PUBEXTERNALDIR,scratch,NULL,MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
-    if(ret!=0){
-      perror("cask: Mount of /usr/public/opt failed - skipping");
-    }
-    }
+        char scratch[2000];
 
-    sprintf(scratch,"%s/qemu",rootdir);
-    domount(scratch,QEMUEXTERNALDIR);
+	sprintf(scratch,"%s/usr/public/opt",rootdir);
+	ret= mkdir_p(scratch,0555);
+	ret= mount(PUBEXTERNALDIR,scratch,NULL,MS_MGC_VAL|MS_BIND|MS_REC|MS_RDONLY,NULL);
+	if(ret!=0){
+	  perror("cask: Mount of /usr/public/opt failed - skipping");
+	}
+    }
+    domount(rootdir,"qemu",QEMUEXTERNALDIR);
   }
   if(MOUNT_DEV){
-    sprintf(scratch,"%s/dev",rootdir);
-    domount(scratch,"/dev");
+    domount(rootdir,"dev","/dev");
   }
 
   if(MOUNT_PROC){
-    sprintf(scratch,"%s/proc",rootdir);
-    domount(scratch,"/proc");
+    domount(rootdir,"proc","/proc");
   }
 
   ret= chroot(rootdir);
