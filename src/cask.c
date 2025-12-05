@@ -142,7 +142,7 @@ void domount(const char* rootdir, const char* internaldirname, const char* exter
     fprintf(stderr,"mount of %s on %s failed (%d) (%s)\n",internaldirname,externaldirname, errno, strerror(errno));
     exit(11);
   } else {
-    fprintf(stderr,"mount of %s on %s succeeded\n",externaldirname,scratch);
+    //fprintf(stderr,"mount of %s on %s succeeded\n",externaldirname,scratch);
   }
 }
 
@@ -322,17 +322,20 @@ int child_code(void* arglist){
 
   const char *externalqemudir = getenv("CASK_QEMUDIR");
   if (externalqemudir != NULL)  {
-    domount(rootdir,"lib64","/lib64");
-
-    domount(rootdir,"lib/x86_64-linux-gnu","/lib/x86_64-linux-gnu");
+    if (!(getenv("SKIP_MOUNT_LIB64"))) {
+      domount(rootdir,"lib64","/lib64");
+    }
+    if (!(getenv("SKIP_MOUNT_X86_64"))) {
+      domount(rootdir,"lib/x86_64-linux-gnu","/lib/x86_64-linux-gnu");
+    }
 
     domount(rootdir,"qemu",externalqemudir);
   }
-  if(MOUNT_DEV){
+  if(getenv("MOUNT_DEV")){
     domount(rootdir,"dev","/dev");
   }
 
-  if(MOUNT_PROC){
+    if(getenv("MOUNT_PROC")){
     domount(rootdir,"proc","/proc");
   }
 
@@ -346,7 +349,7 @@ int child_code(void* arglist){
   if(ret!=0){
     perror("cask: Chdir to current dir failed");
   } else {
-    fprintf(stderr,"cask: chdir to (%s) succeeded\n",curdir);
+    //fprintf(stderr,"cask: chdir to (%s) succeeded\n",curdir);
   }
     
 
@@ -361,7 +364,7 @@ int child_code(void* arglist){
     fprintf(stderr,"cask: No execute access to %s (%s)\n",cmd,strerror(errno));
     exit(-2);
   } else {
-    fprintf(stderr,"cask: cmd %s in curdir %s is executable\n",cmd,curdir);
+    //fprintf(stderr,"cask: cmd %s in curdir %s is executable\n",cmd,curdir);
   }
 
   ret= access(cmdargs[0],X_OK);
@@ -369,7 +372,7 @@ int child_code(void* arglist){
     fprintf(stderr,"cask: No execute access to %s (%s)\n",cmdargs[0],strerror(errno));
     exit(-2);
   } else {
-    fprintf(stderr,"cask: cmd %s in curdir %s is executable\n",cmdargs[0],curdir);
+    //fprintf(stderr,"cask: cmd %s in curdir %s is executable\n",cmdargs[0],curdir);
   }
 
   for(i= 0;i<10;i++){

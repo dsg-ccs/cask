@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
   if (cpid == 0) {
     /* Child */
     printf("Child PID %ld, parent PID %ld, uid %ld, euid %ld, gid %ld, egid %ld\n",
-	   getpid(), getppid(), getuid(), geteuid(), getgid(), getegid());
+	   (long) getpid(), (long) getppid(), (long) getuid(), (long) geteuid(), (long) getgid(), (long) getegid());
   } else {
     /* Parent */
     do {
